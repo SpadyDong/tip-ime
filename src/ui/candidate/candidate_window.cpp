@@ -36,6 +36,7 @@ constexpr COLORREF kIndexColor = RGB(120, 120, 120);
 constexpr COLORREF kHighlightColor = RGB(0, 120, 215);
 constexpr COLORREF kButtonColor = RGB(100, 100, 100);
 constexpr COLORREF kButtonHoverColor = RGB(32, 32, 32);
+constexpr COLORREF kButtonDisabledColor = RGB(200, 200, 200);
 
 std::unordered_map<HWND, CandidateWindow::Impl*>& WindowMap() {
     static std::unordered_map<HWND, CandidateWindow::Impl*> s_map;
@@ -204,6 +205,9 @@ public:
     std::vector<CandidateItem> candidates;
     int hoverButton = -1; // -1 none, 0 prev, 1 next, 2 settings
     int selectedIndex = 0;
+    int currentPage = 0;
+    int totalPages = 1;
+    ClickCallback clickCallback;
 
     std::vector<int> itemWidths;
     int contentWidth = 0;
@@ -292,6 +296,23 @@ public:
             UpdateLayout();
             Render();
         }
+    }
+
+    void SetPageInfo(int page, int total) {
+        currentPage = page;
+        totalPages = total;
+        if (totalPages < 1) {
+            totalPages = 1;
+        }
+        if (currentPage < 0) {
+            currentPage = 0;
+        } else if (currentPage >= totalPages) {
+            currentPage = totalPages - 1;
+        }
+    }
+
+    void SetClickCallback(ClickCallback callback) {
+        clickCallback = std::move(callback);
     }
 
     void MoveTo(int x, int y) {
@@ -416,15 +437,27 @@ public:
             int buttonY = kWindowMargin + kItemHeight / 2;
             int bx = width - kWindowMargin - kButtonWidth * 3;
 
-            Gdiplus::Color prevColor = (hoverButton == 0)
-                ? Gdiplus::Color(GetRValue(kButtonHoverColor), GetGValue(kButtonHoverColor), GetBValue(kButtonHoverColor))
-                : Gdiplus::Color(GetRValue(kButtonColor), GetGValue(kButtonColor), GetBValue(kButtonColor));
+            bool prevEnabled = (currentPage > 0);
+            Gdiplus::Color prevColor;
+            if (!prevEnabled) {
+                prevColor = Gdiplus::Color(GetRValue(kButtonDisabledColor), GetGValue(kButtonDisabledColor), GetBValue(kButtonDisabledColor));
+            } else if (hoverButton == 0) {
+                prevColor = Gdiplus::Color(GetRValue(kButtonHoverColor), GetGValue(kButtonHoverColor), GetBValue(kButtonHoverColor));
+            } else {
+                prevColor = Gdiplus::Color(GetRValue(kButtonColor), GetGValue(kButtonColor), GetBValue(kButtonColor));
+            }
             DrawArrow(graphics, bx + kButtonWidth / 2, buttonY, true, prevColor);
 
             bx += kButtonWidth;
-            Gdiplus::Color nextColor = (hoverButton == 1)
-                ? Gdiplus::Color(GetRValue(kButtonHoverColor), GetGValue(kButtonHoverColor), GetBValue(kButtonHoverColor))
-                : Gdiplus::Color(GetRValue(kButtonColor), GetGValue(kButtonColor), GetBValue(kButtonColor));
+            bool nextEnabled = (currentPage + 1 < totalPages);
+            Gdiplus::Color nextColor;
+            if (!nextEnabled) {
+                nextColor = Gdiplus::Color(GetRValue(kButtonDisabledColor), GetGValue(kButtonDisabledColor), GetBValue(kButtonDisabledColor));
+            } else if (hoverButton == 1) {
+                nextColor = Gdiplus::Color(GetRValue(kButtonHoverColor), GetGValue(kButtonHoverColor), GetBValue(kButtonHoverColor));
+            } else {
+                nextColor = Gdiplus::Color(GetRValue(kButtonColor), GetGValue(kButtonColor), GetBValue(kButtonColor));
+            }
             DrawArrow(graphics, bx + kButtonWidth / 2 - 3, buttonY, false, nextColor);
 
             bx += kButtonWidth;
@@ -457,7 +490,13 @@ public:
             if (y >= buttonYStart && y <= buttonYEnd) {
                 for (int i = 0; i < 3; ++i) {
                     if (x >= bx && x <= bx + kButtonWidth) {
-                        newHover = i;
+                        if (i == 0 && currentPage == 0) {
+                            // Disabled prev button.
+                        } else if (i == 1 && currentPage + 1 >= totalPages) {
+                            // Disabled next button.
+                        } else {
+                            newHover = i;
+                        }
                         break;
                     }
                     bx += kButtonWidth;
@@ -472,7 +511,15 @@ public:
 
     void HandleMouseClick(int x, int y) {
         if (hoverButton >= 0) {
-            // TODO: notify owner about page turn / settings click
+            if (clickCallback) {
+                if (hoverButton == 0) {
+                    clickCallback(kCandidateActionPrevPage, 0);
+                } else if (hoverButton == 1) {
+                    clickCallback(kCandidateActionNextPage, 0);
+                } else if (hoverButton == 2) {
+                    clickCallback(kCandidateActionSettings, 0);
+                }
+            }
             return;
         }
 
@@ -483,7 +530,9 @@ public:
             if (x >= itemX && x <= itemX + itemWidths[i] && y >= itemYStart && y <= itemYEnd) {
                 selectedIndex = static_cast<int>(i);
                 Render();
-                // TODO: notify owner about candidate selection
+                if (clickCallback) {
+                    clickCallback(kCandidateActionSelect, candidates[i].index);
+                }
                 return;
             }
             itemX += itemWidths[i];
@@ -521,6 +570,14 @@ void CandidateWindow::UpdateCandidates(const std::vector<CandidateItem>& candida
 
 void CandidateWindow::MoveTo(int x, int y) {
     impl_->MoveTo(x, y);
+}
+
+void CandidateWindow::SetPageInfo(int currentPage, int totalPages) {
+    impl_->SetPageInfo(currentPage, totalPages);
+}
+
+void CandidateWindow::SetClickCallback(ClickCallback callback) {
+    impl_->SetClickCallback(std::move(callback));
 }
 
 } // namespace tip
@@ -571,6 +628,15 @@ void CandidateWindow::UpdateCandidates(const std::vector<CandidateItem>& candida
 void CandidateWindow::MoveTo(int x, int y) {
     impl_->posX = x;
     impl_->posY = y;
+}
+
+void CandidateWindow::SetPageInfo(int currentPage, int totalPages) {
+    (void)currentPage;
+    (void)totalPages;
+}
+
+void CandidateWindow::SetClickCallback(ClickCallback callback) {
+    (void)callback;
 }
 
 } // namespace tip

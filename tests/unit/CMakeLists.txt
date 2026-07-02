@@ -8,6 +8,7 @@ set(TIP_UNIT_TEST_SOURCES
     test_input_state.cpp
     test_input_processor.cpp
     test_string_utils.cpp
+    test_config_manager.cpp
 )
 
 add_executable(tip_unit_tests ${TIP_UNIT_TEST_SOURCES})

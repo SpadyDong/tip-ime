@@ -9,6 +9,9 @@ struct InputConfig {
     bool enableFuzzySound = true;
     bool enableJianpin = true;
     std::wstring switchLanguageKey = L"Shift";
+
+    std::wstring skin = L"default";
+    bool highDpi = true;
 };
 
 class ConfigManager {

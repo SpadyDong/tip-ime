@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -11,8 +12,16 @@ struct CandidateItem {
     int index;
 };
 
+// Action codes delivered through the click callback.
+constexpr int kCandidateActionPrevPage = 0;
+constexpr int kCandidateActionNextPage = 1;
+constexpr int kCandidateActionSettings = 2;
+constexpr int kCandidateActionSelect = 3;
+
 class CandidateWindow {
 public:
+    using ClickCallback = std::function<void(int action, int param)>;
+
     CandidateWindow();
     ~CandidateWindow();
 
@@ -23,6 +32,9 @@ public:
 
     void UpdateCandidates(const std::vector<CandidateItem>& candidates);
     void MoveTo(int x, int y);
+
+    void SetPageInfo(int currentPage, int totalPages);
+    void SetClickCallback(ClickCallback callback);
 
 private:
     class Impl;

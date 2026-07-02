@@ -21,7 +21,7 @@ target_link_libraries(tip_ime
 )
 
 if(MSVC)
-    target_link_libraries(tip_ime PRIVATE ole32 uuid msctf advapi32)
+    target_link_libraries(tip_ime PRIVATE ole32 uuid msctf advapi32 shell32)
 endif()
 
 set_target_properties(tip_ime PROPERTIES

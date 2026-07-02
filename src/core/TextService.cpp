@@ -4,7 +4,9 @@
 
 #include <cstring>
 #include <new>
+#include <shellapi.h>
 
+#include "config_manager.h"
 #include "logger.h"
 
 namespace tip {
@@ -89,6 +91,9 @@ TextService::TextService()
     , keyEventSinkCookie_(TF_INVALID_COOKIE)
     , threadMgrEventSinkCookie_(TF_INVALID_COOKIE)
     , composition_(nullptr) {
+    candidateWindow_.SetClickCallback([this](int action, int param) {
+        OnCandidateWindowClick(action, param);
+    });
 }
 
 TextService::~TextService() {
@@ -136,6 +141,7 @@ STDMETHODIMP TextService::Activate(ITfThreadMgr* threadMgr, TfClientId clientId)
     threadMgr_->AddRef();
     clientId_ = clientId;
 
+    ConfigManager::Instance().Load(L"data/config/default.ini");
     inputProcessor_.Initialize();
 
     HRESULT hr = AdviseThreadMgrEventSink();
@@ -305,8 +311,14 @@ HRESULT TextService::ProcessKey(ITfContext* context, WPARAM wParam, BOOL keyDown
         } else if (wParam == VK_ESCAPE) {
             inputProcessor_.Clear();
             handled = true;
+        } else if (wParam == VK_PRIOR) {
+            inputProcessor_.PageUp();
+            handled = true;
+        } else if (wParam == VK_NEXT) {
+            inputProcessor_.PageDown();
+            handled = true;
         } else if (wParam == VK_SPACE || wParam == VK_RETURN) {
-            // Commit the first candidate.
+            // Commit the first candidate on the current page.
             if (inputProcessor_.SelectCandidate(0)) {
                 handled = true;
             }
@@ -336,7 +348,7 @@ void TextService::UpdateCandidateWindow(ITfContext* context) {
     (void)context;
 
     auto rawPinyin = inputProcessor_.GetRawPinyin();
-    auto candidates = inputProcessor_.GetCandidates();
+    auto candidates = inputProcessor_.GetPagedCandidates();
 
     if (rawPinyin.empty() || candidates.empty()) {
         HideCandidateWindow();
@@ -344,8 +356,8 @@ void TextService::UpdateCandidateWindow(ITfContext* context) {
     }
 
     std::vector<CandidateItem> items;
-    for (const auto& candidate : candidates) {
-        items.push_back({ candidate.text });
+    for (size_t i = 0; i < candidates.size(); ++i) {
+        items.push_back({ candidates[i].text, candidates[i].pinyin, static_cast<int>(i) });
     }
 
     if (!candidateWindow_.Create()) {
@@ -361,6 +373,8 @@ void TextService::UpdateCandidateWindow(ITfContext* context) {
         GetCursorPos(&pt);
     }
 
+    candidateWindow_.SetPageInfo(static_cast<int>(inputProcessor_.GetCurrentPage()),
+                                 static_cast<int>(inputProcessor_.GetTotalPages()));
     candidateWindow_.MoveTo(pt.x, pt.y + 20);
     candidateWindow_.UpdateCandidates(items);
     candidateWindow_.Show();
@@ -368,6 +382,47 @@ void TextService::UpdateCandidateWindow(ITfContext* context) {
 
 void TextService::HideCandidateWindow() {
     candidateWindow_.Hide();
+}
+
+void TextService::OnCandidateWindowClick(int action, int param) {
+    if (action == kCandidateActionSettings) {
+        // Launch the standalone settings application asynchronously.
+        ShellExecuteW(nullptr, L"open", L"tip_setting.exe", nullptr, nullptr, SW_SHOWNORMAL);
+        return;
+    }
+
+    bool needUpdate = false;
+    if (action == kCandidateActionPrevPage) {
+        needUpdate = inputProcessor_.PageUp();
+    } else if (action == kCandidateActionNextPage) {
+        needUpdate = inputProcessor_.PageDown();
+    } else if (action == kCandidateActionSelect) {
+        if (!inputProcessor_.SelectCandidate(static_cast<size_t>(param))) {
+            return;
+        }
+    } else {
+        return;
+    }
+
+    std::wstring committed = inputProcessor_.GetCommittedText();
+    if (!committed.empty()) {
+        // We need a context to commit text; try to obtain the current context.
+        ITfDocumentMgr* docMgr = nullptr;
+        if (threadMgr_ && SUCCEEDED(threadMgr_->GetFocus(&docMgr))) {
+            ITfContext* context = nullptr;
+            if (SUCCEEDED(docMgr->GetTop(&context))) {
+                CommitText(context, committed.c_str());
+                context->Release();
+            }
+            docMgr->Release();
+        }
+        HideCandidateWindow();
+        return;
+    }
+
+    if (needUpdate) {
+        UpdateCandidateWindow(nullptr);
+    }
 }
 
 HRESULT TextService::CommitText(ITfContext* context, const wchar_t* text) {

@@ -9,4 +9,10 @@ if(WIN32)
             ${CMAKE_CURRENT_SOURCE_DIR}
             ${TIP_SOURCE_DIR}
     )
+    target_link_libraries(tip_setting
+        PRIVATE
+            tip_config
+            tip_utils
+            shell32
+    )
 endif()

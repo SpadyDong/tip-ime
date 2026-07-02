@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <string>
 #include <vector>
 
@@ -25,6 +26,15 @@ public:
 
     std::wstring GetRawPinyin() const;
     std::vector<Candidate> GetCandidates() const;
+
+    void SetPageSize(size_t pageSize);
+    size_t GetPageSize() const;
+
+    bool PageDown();
+    bool PageUp();
+    size_t GetCurrentPage() const;
+    size_t GetTotalPages() const;
+    std::vector<Candidate> GetPagedCandidates() const;
 
     bool SelectCandidate(size_t index);
     std::wstring GetCommittedText();

@@ -12,6 +12,7 @@ extern std::vector<TestResult> RunTrieIndexTests();
 extern std::vector<TestResult> RunInputStateTests();
 extern std::vector<TestResult> RunInputProcessorTests();
 extern std::vector<TestResult> RunStringUtilsTests();
+extern std::vector<TestResult> RunConfigManagerTests();
 
 int main() {
     std::vector<TestResult> allResults;
@@ -25,6 +26,7 @@ int main() {
     append(RunInputStateTests());
     append(RunInputProcessorTests());
     append(RunStringUtilsTests());
+    append(RunConfigManagerTests());
 
     int passed = 0;
     int failed = 0;

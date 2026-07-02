@@ -51,6 +51,7 @@ private:
     HRESULT ProcessKey(ITfContext* context, WPARAM wParam, BOOL keyDown, BOOL* eaten);
     void UpdateCandidateWindow(ITfContext* context);
     void HideCandidateWindow();
+    void OnCandidateWindowClick(int action, int param);
 
     LONG refCount_;
     ITfThreadMgr* threadMgr_;
