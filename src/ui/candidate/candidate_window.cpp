@@ -162,37 +162,6 @@ void DrawGearIcon(Gdiplus::Graphics& graphics, int cx, int cy, const Gdiplus::Co
     }
 }
 
-LRESULT CALLBACK CandidateWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    auto it = WindowMap().find(hwnd);
-    if (it == WindowMap().end()) {
-        return DefWindowProcW(hwnd, msg, wParam, lParam);
-    }
-
-    CandidateWindow::Impl* impl = it->second;
-    switch (msg) {
-        case WM_LBUTTONDOWN: {
-            int x = GET_X_LPARAM(lParam);
-            int y = GET_Y_LPARAM(lParam);
-            impl->HandleMouseClick(x, y);
-            return 0;
-        }
-        case WM_MOUSEMOVE: {
-            int x = GET_X_LPARAM(lParam);
-            int y = GET_Y_LPARAM(lParam);
-            impl->HandleMouseMove(x, y);
-            return 0;
-        }
-        case WM_PAINT: {
-            impl->Render();
-            return 0;
-        }
-        case WM_DESTROY:
-            WindowMap().erase(hwnd);
-            return 0;
-    }
-    return DefWindowProcW(hwnd, msg, wParam, lParam);
-}
-
 } // namespace
 
 class CandidateWindow::Impl {
@@ -578,6 +547,41 @@ public:
         }
     }
 };
+
+namespace {
+
+LRESULT CALLBACK CandidateWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    auto it = WindowMap().find(hwnd);
+    if (it == WindowMap().end()) {
+        return DefWindowProcW(hwnd, msg, wParam, lParam);
+    }
+
+    CandidateWindow::Impl* impl = it->second;
+    switch (msg) {
+        case WM_LBUTTONDOWN: {
+            int x = GET_X_LPARAM(lParam);
+            int y = GET_Y_LPARAM(lParam);
+            impl->HandleMouseClick(x, y);
+            return 0;
+        }
+        case WM_MOUSEMOVE: {
+            int x = GET_X_LPARAM(lParam);
+            int y = GET_Y_LPARAM(lParam);
+            impl->HandleMouseMove(x, y);
+            return 0;
+        }
+        case WM_PAINT: {
+            impl->Render();
+            return 0;
+        }
+        case WM_DESTROY:
+            WindowMap().erase(hwnd);
+            return 0;
+    }
+    return DefWindowProcW(hwnd, msg, wParam, lParam);
+}
+
+} // namespace
 
 CandidateWindow::CandidateWindow()
     : impl_(new Impl()) {
