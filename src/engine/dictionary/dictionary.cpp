@@ -1,13 +1,62 @@
 #include "dictionary.h"
 
-#include <filesystem>
 #include <fstream>
 #include <sstream>
+
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#else
+#include <filesystem>
+#endif
 
 #include "logger.h"
 #include "string_utils.h"
 
 namespace tip {
+
+namespace {
+
+#ifdef _WIN32
+bool CreateDirectoryRecursive(const std::wstring& path) {
+    if (path.empty()) {
+        return true;
+    }
+
+    DWORD attrs = GetFileAttributesW(path.c_str());
+    if (attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY)) {
+        return true;
+    }
+
+    size_t sep = path.find_last_of(L"\\/");
+    if (sep != std::wstring::npos) {
+        if (!CreateDirectoryRecursive(path.substr(0, sep))) {
+            return false;
+        }
+    }
+
+    return CreateDirectoryW(path.c_str(), nullptr) != 0 ||
+           GetLastError() == ERROR_ALREADY_EXISTS;
+}
+#endif
+
+void EnsureParentDirectoryExists(const std::wstring& filePath) {
+    size_t lastSep = filePath.find_last_of(L"\\/");
+    if (lastSep == std::wstring::npos) {
+        return;
+    }
+
+    std::wstring parent = filePath.substr(0, lastSep);
+#ifdef _WIN32
+    CreateDirectoryRecursive(parent);
+#else
+    std::filesystem::create_directories(std::filesystem::path(parent));
+#endif
+}
+
+} // namespace
 
 class Dictionary::Impl {
 public:
@@ -68,7 +117,7 @@ bool Dictionary::SaveToFile(const std::wstring& filePath) const {
 
     // Ensure the parent directory exists so that user dictionaries can be
     // created on first use even when the data directory has not been set up.
-    std::filesystem::create_directories(std::filesystem::path(filePath).parent_path());
+    EnsureParentDirectoryExists(filePath);
 
     std::ofstream file(utf8Path);
     if (!file.is_open()) {
