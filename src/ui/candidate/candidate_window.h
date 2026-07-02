@@ -38,8 +38,12 @@ public:
     void SetClickCallback(ClickCallback callback);
     void SetLanguageIndicator(bool chineseMode);
 
-private:
+    // Forward declaration is public so that implementation helpers in the
+    // corresponding .cpp file can name the type while keeping the definition
+    // private to the translation unit.
     class Impl;
+
+private:
     Impl* impl_;
 };
 

@@ -44,7 +44,7 @@ std::unordered_map<HWND, CandidateWindow::Impl*>& WindowMap() {
     return s_map;
 }
 
-int GdiplusStartupTokenRefCount() {
+int& GdiplusStartupTokenRefCount() {
     static int s_ref_count = 0;
     return s_ref_count;
 }
@@ -75,6 +75,8 @@ void GdiplusShutdownIfNeeded() {
 const wchar_t* ClassName() {
     return L"TIPCandidateWindow";
 }
+
+LRESULT CALLBACK CandidateWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 HINSTANCE GetCurrentModuleHandle() {
     HINSTANCE hInstance = nullptr;

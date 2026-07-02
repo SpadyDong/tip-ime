@@ -14,6 +14,12 @@ option(TIP_BUILD_UI "Build UI modules (Windows only)" ON)
 option(TIP_BUILD_TESTS "Build unit tests and integration tests" ON)
 option(TIP_ENABLE_WARNINGS "Enable strict compiler warnings" ON)
 
+if(MSVC)
+    # Ensure Windows API macros resolve to the wide-character variants to match
+    # our explicit use of W-suffix APIs and wchar_t string literals.
+    add_compile_definitions(UNICODE _UNICODE NOMINMAX)
+endif()
+
 if(TIP_ENABLE_WARNINGS)
     if(MSVC)
         add_compile_options(/W4 /WX-)
