@@ -13,6 +13,8 @@ if(WIN32)
         PRIVATE
             tip_config
             tip_utils
+            tip_dictionary
             shell32
+            comdlg32
     )
 endif()

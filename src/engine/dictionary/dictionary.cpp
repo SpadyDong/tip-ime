@@ -1,5 +1,6 @@
 #include "dictionary.h"
 
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 
@@ -63,8 +64,71 @@ bool Dictionary::LoadFromFile(const std::wstring& filePath) {
 }
 
 bool Dictionary::SaveToFile(const std::wstring& filePath) const {
-    // TODO: implement binary dictionary serialization
-    TIP_LOG_INFO(L"Dictionary saving to: " + filePath);
+    std::string utf8Path = WideToUtf8(filePath);
+
+    // Ensure the parent directory exists so that user dictionaries can be
+    // created on first use even when the data directory has not been set up.
+    std::filesystem::create_directories(std::filesystem::path(filePath).parent_path());
+
+    std::ofstream file(utf8Path);
+    if (!file.is_open()) {
+        TIP_LOG_ERROR(L"Failed to open dictionary file for writing: " + filePath);
+        return false;
+    }
+
+    file << "# TIP User Dictionary\n";
+    auto entries = GetAllEntries();
+    for (const auto& entry : entries) {
+        file << WideToUtf8(entry.pinyin) << "\t"
+             << WideToUtf8(entry.text) << "\t"
+             << entry.frequency << "\n";
+    }
+
+    TIP_LOG_INFO(L"Dictionary saved " + std::to_wstring(entries.size()) +
+                 L" entries to: " + filePath);
+    return true;
+}
+
+bool Dictionary::ImportFromFile(const std::wstring& filePath) {
+    std::string utf8Path = WideToUtf8(filePath);
+    std::ifstream file(utf8Path);
+    if (!file.is_open()) {
+        TIP_LOG_ERROR(L"Failed to open import dictionary file: " + filePath);
+        return false;
+    }
+
+    std::string line;
+    size_t imported = 0;
+    while (std::getline(file, line)) {
+        if (line.empty() || line.front() == '#') {
+            continue;
+        }
+
+        std::wstring wideLine = Utf8ToWide(line);
+        auto parts = SplitWideString(wideLine, L'\t');
+        if (parts.size() < 2) {
+            continue;
+        }
+
+        std::wstring pinyin = ToLowerWide(parts[0]);
+        std::wstring text = parts[1];
+        int frequency = 0;
+        if (parts.size() >= 3) {
+            try {
+                frequency = std::stoi(parts[2]);
+            } catch (...) {
+                frequency = 0;
+            }
+        }
+
+        if (!HasEntry(pinyin, text)) {
+            AddEntry(pinyin, text, frequency);
+            ++imported;
+        }
+    }
+
+    TIP_LOG_INFO(L"Dictionary imported " + std::to_wstring(imported) +
+                 L" entries from: " + filePath);
     return true;
 }
 
@@ -88,8 +152,22 @@ void Dictionary::UpdateFrequency(const std::wstring& pinyin, const std::wstring&
     (void)delta;
 }
 
+bool Dictionary::HasEntry(const std::wstring& pinyin, const std::wstring& text) const {
+    auto entries = impl_->trie.Search(pinyin);
+    for (const auto& entry : entries) {
+        if (entry.pinyin == pinyin && entry.text == text) {
+            return true;
+        }
+    }
+    return false;
+}
+
 std::vector<DictEntry> Dictionary::Query(const std::wstring& pinyinPrefix) const {
     return impl_->trie.Search(pinyinPrefix);
+}
+
+std::vector<DictEntry> Dictionary::GetAllEntries() const {
+    return impl_->trie.GetAllEntries();
 }
 
 size_t Dictionary::Size() const {

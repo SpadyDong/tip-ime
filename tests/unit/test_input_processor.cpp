@@ -66,6 +66,22 @@ std::vector<TestResult> RunInputProcessorTests() {
     processor.Clear();
     processor.SetPageSize(5);
 
+    // User phrase tests.
+    CHECK("add user phrase succeeds", processor.AddUserPhrase(L"tip", L"提示输入法", 1000));
+    processor.AppendPinyinChar(L't');
+    processor.AppendPinyinChar(L'i');
+    processor.AppendPinyinChar(L'p');
+    auto allCandidates = processor.GetCandidates();
+    bool foundUserPhrase = false;
+    for (const auto& candidate : allCandidates) {
+        if (candidate.text == L"提示输入法") {
+            foundUserPhrase = true;
+            break;
+        }
+    }
+    CHECK("user phrase appears in candidates", foundUserPhrase);
+
+    processor.Clear();
     processor.Shutdown();
 
     return results;

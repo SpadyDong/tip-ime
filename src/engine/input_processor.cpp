@@ -15,7 +15,8 @@ class InputProcessor::Impl {
 public:
     std::wstring rawPinyin;
     std::wstring committedText;
-    Dictionary dictionary;
+    Dictionary baseDictionary;
+    Dictionary userDictionary;
     bool initialized = false;
     size_t pageSize = 5;
     size_t currentPage = 0;
@@ -92,15 +93,22 @@ bool InputProcessor::Initialize() {
 
     // Load the bundled base dictionary. The file is located relative to the
     // project root and uses tab-separated UTF-8 text.
-    std::wstring dictPath = L"data/dictionary/base_dict.txt";
-    if (!impl_->dictionary.LoadFromFile(dictPath)) {
+    std::wstring baseDictPath = L"data/dictionary/base_dict.txt";
+    if (!impl_->baseDictionary.LoadFromFile(baseDictPath)) {
         TIP_LOG_WARNING(L"Failed to load base dictionary, continuing with empty dictionary");
     }
 
+    // Load the user dictionary if it exists. It is okay if it is missing on
+    // first run; an empty user dictionary will be created on export or when
+    // the first user phrase is added.
+    std::wstring userDictPath = L"data/dictionary/user_dict.txt";
+    impl_->userDictionary.LoadFromFile(userDictPath);
+
     impl_->initialized = true;
     impl_->ResetPage();
-    TIP_LOG_INFO(L"InputProcessor initialized with dictionary size: " +
-                 std::to_wstring(impl_->dictionary.Size()));
+    TIP_LOG_INFO(L"InputProcessor initialized with base=" +
+                 std::to_wstring(impl_->baseDictionary.Size()) +
+                 L" user=" + std::to_wstring(impl_->userDictionary.Size()));
     return true;
 }
 
@@ -142,15 +150,21 @@ std::vector<Candidate> InputProcessor::GetCandidates() const {
     auto keys = impl_->BuildQueryKeys(impl_->rawPinyin);
     std::unordered_set<std::wstring> seen;
 
-    for (const auto& key : keys) {
-        auto entries = impl_->dictionary.Query(key);
-        for (const auto& entry : entries) {
-            if (seen.find(entry.text) == seen.end()) {
-                seen.insert(entry.text);
-                result.push_back({ entry.text, entry.pinyin, entry.frequency });
+    auto queryDictionary = [&](const Dictionary& dict, int boost) {
+        for (const auto& key : keys) {
+            auto entries = dict.Query(key);
+            for (const auto& entry : entries) {
+                if (seen.find(entry.text) == seen.end()) {
+                    seen.insert(entry.text);
+                    // Boost user phrases so they appear before base entries.
+                    result.push_back({ entry.text, entry.pinyin, entry.frequency + boost });
+                }
             }
         }
-    }
+    };
+
+    queryDictionary(impl_->userDictionary, 10000);
+    queryDictionary(impl_->baseDictionary, 0);
 
     // If no dictionary entries match, fall back to showing the raw pinyin so
     // the user still sees feedback.
@@ -242,6 +256,33 @@ std::wstring InputProcessor::GetCommittedText() {
     std::wstring text = impl_->committedText;
     impl_->committedText.clear();
     return text;
+}
+
+bool InputProcessor::ImportUserPhrases(const std::wstring& filePath) {
+    if (!impl_->userDictionary.ImportFromFile(filePath)) {
+        return false;
+    }
+    std::wstring userDictPath = L"data/dictionary/user_dict.txt";
+    return impl_->userDictionary.SaveToFile(userDictPath);
+}
+
+bool InputProcessor::ExportUserPhrases(const std::wstring& filePath) const {
+    return impl_->userDictionary.SaveToFile(filePath);
+}
+
+bool InputProcessor::AddUserPhrase(const std::wstring& pinyin, const std::wstring& text, int frequency) {
+    std::wstring lowerPinyin = pinyin;
+    for (auto& ch : lowerPinyin) {
+        if (ch >= L'A' && ch <= L'Z') {
+            ch = ch - L'A' + L'a';
+        }
+    }
+    if (impl_->userDictionary.HasEntry(lowerPinyin, text)) {
+        return true;
+    }
+    impl_->userDictionary.AddEntry(lowerPinyin, text, frequency);
+    std::wstring userDictPath = L"data/dictionary/user_dict.txt";
+    return impl_->userDictionary.SaveToFile(userDictPath);
 }
 
 } // namespace tip

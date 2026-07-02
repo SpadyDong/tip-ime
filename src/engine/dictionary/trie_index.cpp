@@ -81,4 +81,10 @@ bool TrieIndex::Remove(const std::wstring& pinyin, const std::wstring& text) {
     return true;
 }
 
+std::vector<DictEntry> TrieIndex::GetAllEntries() const {
+    std::vector<DictEntry> result;
+    impl_->CollectEntries(impl_->root.get(), result);
+    return result;
+}
+
 } // namespace tip

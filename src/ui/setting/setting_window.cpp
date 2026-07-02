@@ -1,15 +1,17 @@
 #ifdef _WIN32
 
 #include <windows.h>
+#include <commdlg.h>
 
 #include <string>
 
 #include "engine/config/config_manager.h"
+#include "engine/dictionary/dictionary.h"
 
 namespace {
 
 constexpr int kWindowWidth = 360;
-constexpr int kWindowHeight = 280;
+constexpr int kWindowHeight = 340;
 
 constexpr int kLabelWidth = 140;
 constexpr int kControlHeight = 22;
@@ -20,6 +22,7 @@ constexpr int kEditWidth = 160;
 constexpr int kCheckSize = 16;
 constexpr int kButtonWidth = 80;
 constexpr int kButtonHeight = 26;
+constexpr int kWideButtonWidth = 120;
 
 HWND hwndCandidateCount = nullptr;
 HWND hwndEnableFuzzy = nullptr;
@@ -29,6 +32,10 @@ HWND hwndHighDpi = nullptr;
 
 const wchar_t* ConfigPath() {
     return L"data/config/default.ini";
+}
+
+const wchar_t* UserDictPath() {
+    return L"data/dictionary/user_dict.txt";
 }
 
 std::wstring GetWindowTextString(HWND hwnd) {
@@ -74,6 +81,71 @@ void SaveConfigFromControls() {
     tip::ConfigManager::Instance().Save(ConfigPath());
 }
 
+std::wstring ChooseFileForImport(HWND hwnd) {
+    wchar_t fileName[MAX_PATH] = {};
+    OPENFILENAMEW ofn = {};
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = hwnd;
+    ofn.lpstrFilter = L"词库文件 (*.txt)\0*.txt\0所有文件 (*.*)\0*.*\0";
+    ofn.lpstrFile = fileName;
+    ofn.nMaxFile = MAX_PATH;
+    ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
+    if (GetOpenFileNameW(&ofn)) {
+        return fileName;
+    }
+    return L"";
+}
+
+std::wstring ChooseFileForExport(HWND hwnd) {
+    wchar_t fileName[MAX_PATH] = {};
+    OPENFILENAMEW ofn = {};
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = hwnd;
+    ofn.lpstrFilter = L"词库文件 (*.txt)\0*.txt\0所有文件 (*.*)\0*.*\0";
+    ofn.lpstrFile = fileName;
+    ofn.nMaxFile = MAX_PATH;
+    ofn.Flags = OFN_OVERWRITEPROMPT;
+    ofn.lpstrDefExt = L"txt";
+    if (GetSaveFileNameW(&ofn)) {
+        return fileName;
+    }
+    return L"";
+}
+
+void ImportUserPhrases(HWND hwnd) {
+    std::wstring path = ChooseFileForImport(hwnd);
+    if (path.empty()) {
+        return;
+    }
+
+    tip::Dictionary userDict;
+    userDict.LoadFromFile(UserDictPath());
+    if (userDict.ImportFromFile(path)) {
+        if (userDict.SaveToFile(UserDictPath())) {
+            MessageBoxW(hwnd, L"自定义短语导入成功", L"TIP Setting", MB_OK | MB_ICONINFORMATION);
+        } else {
+            MessageBoxW(hwnd, L"导入成功但保存用户词库失败", L"TIP Setting", MB_OK | MB_ICONWARNING);
+        }
+    } else {
+        MessageBoxW(hwnd, L"自定义短语导入失败", L"TIP Setting", MB_OK | MB_ICONERROR);
+    }
+}
+
+void ExportUserPhrases(HWND hwnd) {
+    std::wstring path = ChooseFileForExport(hwnd);
+    if (path.empty()) {
+        return;
+    }
+
+    tip::Dictionary userDict;
+    userDict.LoadFromFile(UserDictPath());
+    if (userDict.SaveToFile(path)) {
+        MessageBoxW(hwnd, L"自定义短语导出成功", L"TIP Setting", MB_OK | MB_ICONINFORMATION);
+    } else {
+        MessageBoxW(hwnd, L"自定义短语导出失败", L"TIP Setting", MB_OK | MB_ICONERROR);
+    }
+}
+
 void CreateSettingControls(HWND hwnd) {
     HINSTANCE hInstance = reinterpret_cast<HINSTANCE>(GetWindowLongPtrW(hwnd, GWLP_HINSTANCE));
     int y = kMargin;
@@ -116,6 +188,17 @@ void CreateSettingControls(HWND hwnd) {
                                   hwnd, reinterpret_cast<HMENU>(5), hInstance, nullptr);
     y += kControlHeight + kSpacing * 2;
 
+    CreateWindowExW(0, L"BUTTON", L"导入自定义短语",
+                    WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON,
+                    kMargin, y, kWideButtonWidth, kButtonHeight,
+                    hwnd, reinterpret_cast<HMENU>(101), hInstance, nullptr);
+
+    CreateWindowExW(0, L"BUTTON", L"导出自定义短语",
+                    WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON,
+                    kMargin + kWideButtonWidth + kSpacing, y, kWideButtonWidth, kButtonHeight,
+                    hwnd, reinterpret_cast<HMENU>(102), hInstance, nullptr);
+    y += kButtonHeight + kSpacing * 2;
+
     int buttonX = kMargin;
     CreateWindowExW(0, L"BUTTON", L"保存",
                     WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
@@ -144,6 +227,12 @@ LRESULT CALLBACK SettingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
                 return 0;
             } else if (id == IDCANCEL) {
                 DestroyWindow(hwnd);
+                return 0;
+            } else if (id == 101) {
+                ImportUserPhrases(hwnd);
+                return 0;
+            } else if (id == 102) {
+                ExportUserPhrases(hwnd);
                 return 0;
             }
             break;

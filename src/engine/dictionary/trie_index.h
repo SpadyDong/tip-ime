@@ -20,6 +20,7 @@ public:
     void Insert(const std::wstring& pinyin, const DictEntry& entry);
     std::vector<DictEntry> Search(const std::wstring& pinyinPrefix) const;
     bool Remove(const std::wstring& pinyin, const std::wstring& text);
+    std::vector<DictEntry> GetAllEntries() const;
 
 private:
     class Impl;

@@ -39,6 +39,10 @@ public:
     bool SelectCandidate(size_t index);
     std::wstring GetCommittedText();
 
+    bool ImportUserPhrases(const std::wstring& filePath);
+    bool ExportUserPhrases(const std::wstring& filePath) const;
+    bool AddUserPhrase(const std::wstring& pinyin, const std::wstring& text, int frequency);
+
 private:
     class Impl;
     Impl* impl_;

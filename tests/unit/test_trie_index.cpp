@@ -32,5 +32,9 @@ std::vector<TestResult> RunTrieIndexTests() {
     auto r4 = index.Search(L"zhong");
     CHECK("after remove, search returns empty", r4.empty());
 
+    index.Insert(L"zhongguo", { L"中国", L"zhongguo", 100 });
+    auto all = index.GetAllEntries();
+    CHECK("get all entries returns expected count", all.size() == 2);
+
     return results;
 }
