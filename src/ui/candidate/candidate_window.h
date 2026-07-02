@@ -17,6 +17,7 @@ constexpr int kCandidateActionPrevPage = 0;
 constexpr int kCandidateActionNextPage = 1;
 constexpr int kCandidateActionSettings = 2;
 constexpr int kCandidateActionSelect = 3;
+constexpr int kCandidateActionLanguageToggle = 4;
 
 class CandidateWindow {
 public:
@@ -35,6 +36,7 @@ public:
 
     void SetPageInfo(int currentPage, int totalPages);
     void SetClickCallback(ClickCallback callback);
+    void SetLanguageIndicator(bool chineseMode);
 
 private:
     class Impl;

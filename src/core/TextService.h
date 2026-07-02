@@ -6,6 +6,7 @@
 #include <unknwn.h>
 
 #include "candidate_window.h"
+#include "engine/state/input_state.h"
 #include "input_processor.h"
 
 namespace tip {
@@ -52,7 +53,10 @@ private:
     void UpdateCandidateWindow(ITfContext* context);
     void HideCandidateWindow();
     void OnCandidateWindowClick(int action, int param);
+    void OnLanguageToggled();
+    void UpdateLanguageIndicator();
 
+private:
     LONG refCount_;
     ITfThreadMgr* threadMgr_;
     TfClientId clientId_;
@@ -61,6 +65,10 @@ private:
     ITfComposition* composition_;
     InputProcessor inputProcessor_;
     CandidateWindow candidateWindow_;
+    InputState inputState_;
+    bool shiftLeftPressed_;
+    bool shiftRightPressed_;
+    bool shiftUsed_;
 };
 
 } // namespace tip

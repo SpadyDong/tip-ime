@@ -26,6 +26,7 @@ constexpr int kIndexTextWidth = 16;
 constexpr int kTextHeight = 20;
 constexpr int kHighlightBarWidth = 3;
 constexpr int kButtonWidth = 24;
+constexpr int kLanguageButtonWidth = 32;
 constexpr int kCornerRadius = 8;
 constexpr int kWindowMargin = 4;
 
@@ -203,10 +204,11 @@ public:
     int posY = 0;
     bool visible = false;
     std::vector<CandidateItem> candidates;
-    int hoverButton = -1; // -1 none, 0 prev, 1 next, 2 settings
+    int hoverButton = -1; // -1 none, 0 prev, 1 next, 2 settings, 3 language
     int selectedIndex = 0;
     int currentPage = 0;
     int totalPages = 1;
+    bool chineseMode = true;
     ClickCallback clickCallback;
 
     std::vector<int> itemWidths;
@@ -315,6 +317,15 @@ public:
         clickCallback = std::move(callback);
     }
 
+    void SetLanguageIndicator(bool mode) {
+        if (chineseMode != mode) {
+            chineseMode = mode;
+            if (visible) {
+                Render();
+            }
+        }
+    }
+
     void MoveTo(int x, int y) {
         posX = x;
         posY = y;
@@ -341,8 +352,8 @@ public:
         }
 
         if (!candidates.empty()) {
-            // Buttons: prev, next, settings
-            contentWidth += kButtonWidth * 3;
+            // Buttons: language, prev, next, settings
+            contentWidth += kButtonWidth * 3 + kLanguageButtonWidth;
         }
 
         height = kItemHeight + kWindowMargin * 2;
@@ -435,6 +446,25 @@ public:
         // Draw buttons
         if (!candidates.empty()) {
             int buttonY = kWindowMargin + kItemHeight / 2;
+
+            // Language indicator button
+            int langX = width - kWindowMargin - kButtonWidth * 3 - kLanguageButtonWidth;
+            Gdiplus::Color langBgColor = (hoverButton == 3)
+                ? Gdiplus::Color(GetRValue(kButtonHoverColor), GetGValue(kButtonHoverColor), GetBValue(kButtonHoverColor))
+                : Gdiplus::Color(GetRValue(kHighlightColor), GetGValue(kHighlightColor), GetBValue(kHighlightColor));
+            Gdiplus::Rect langRect(langX + 4, kWindowMargin + 6, kLanguageButtonWidth - 8, kItemHeight - 12);
+            DrawRoundedRectangle(graphics, langRect, 6, langBgColor);
+
+            std::wstring langText = chineseMode ? L"中" : L"英";
+            Gdiplus::SolidBrush langBrush(Gdiplus::Color(255, 255, 255));
+            Gdiplus::Font langFont(L"Microsoft YaHei UI", 10.0f);
+            Gdiplus::RectF langBounds;
+            graphics.MeasureString(langText.c_str(), static_cast<int>(langText.length()), &langFont, Gdiplus::PointF(0, 0), &langBounds);
+            int langTextX = langX + kLanguageButtonWidth / 2 - static_cast<int>(langBounds.Width) / 2;
+            int langTextY = kWindowMargin + (kItemHeight - static_cast<int>(langBounds.Height)) / 2;
+            graphics.DrawString(langText.c_str(), static_cast<int>(langText.length()), &langFont,
+                                Gdiplus::PointF(static_cast<float>(langTextX), static_cast<float>(langTextY)), &langBrush);
+
             int bx = width - kWindowMargin - kButtonWidth * 3;
 
             bool prevEnabled = (currentPage > 0);
@@ -486,20 +516,25 @@ public:
         if (!candidates.empty()) {
             int buttonYStart = kWindowMargin;
             int buttonYEnd = kWindowMargin + kItemHeight;
-            int bx = width - kWindowMargin - kButtonWidth * 3;
+            int langX = width - kWindowMargin - kButtonWidth * 3 - kLanguageButtonWidth;
             if (y >= buttonYStart && y <= buttonYEnd) {
-                for (int i = 0; i < 3; ++i) {
-                    if (x >= bx && x <= bx + kButtonWidth) {
-                        if (i == 0 && currentPage == 0) {
-                            // Disabled prev button.
-                        } else if (i == 1 && currentPage + 1 >= totalPages) {
-                            // Disabled next button.
-                        } else {
-                            newHover = i;
+                if (x >= langX && x <= langX + kLanguageButtonWidth) {
+                    newHover = 3; // language toggle
+                } else {
+                    int bx = width - kWindowMargin - kButtonWidth * 3;
+                    for (int i = 0; i < 3; ++i) {
+                        if (x >= bx && x <= bx + kButtonWidth) {
+                            if (i == 0 && currentPage == 0) {
+                                // Disabled prev button.
+                            } else if (i == 1 && currentPage + 1 >= totalPages) {
+                                // Disabled next button.
+                            } else {
+                                newHover = i;
+                            }
+                            break;
                         }
-                        break;
+                        bx += kButtonWidth;
                     }
-                    bx += kButtonWidth;
                 }
             }
         }
@@ -518,6 +553,8 @@ public:
                     clickCallback(kCandidateActionNextPage, 0);
                 } else if (hoverButton == 2) {
                     clickCallback(kCandidateActionSettings, 0);
+                } else if (hoverButton == 3) {
+                    clickCallback(kCandidateActionLanguageToggle, 0);
                 }
             }
             return;
@@ -580,6 +617,10 @@ void CandidateWindow::SetClickCallback(ClickCallback callback) {
     impl_->SetClickCallback(std::move(callback));
 }
 
+void CandidateWindow::SetLanguageIndicator(bool chineseMode) {
+    impl_->SetLanguageIndicator(chineseMode);
+}
+
 } // namespace tip
 
 #else // Non-Windows stub
@@ -637,6 +678,10 @@ void CandidateWindow::SetPageInfo(int currentPage, int totalPages) {
 
 void CandidateWindow::SetClickCallback(ClickCallback callback) {
     (void)callback;
+}
+
+void CandidateWindow::SetLanguageIndicator(bool chineseMode) {
+    (void)chineseMode;
 }
 
 } // namespace tip

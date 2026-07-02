@@ -90,7 +90,10 @@ TextService::TextService()
     , clientId_(0)
     , keyEventSinkCookie_(TF_INVALID_COOKIE)
     , threadMgrEventSinkCookie_(TF_INVALID_COOKIE)
-    , composition_(nullptr) {
+    , composition_(nullptr)
+    , shiftLeftPressed_(false)
+    , shiftRightPressed_(false)
+    , shiftUsed_(false) {
     candidateWindow_.SetClickCallback([this](int action, int param) {
         OnCandidateWindowClick(action, param);
     });
@@ -296,9 +299,49 @@ HRESULT TextService::ProcessKey(ITfContext* context, WPARAM wParam, BOOL keyDown
         return S_OK;
     }
 
+    const bool isShiftLeft = (wParam == VK_LSHIFT);
+    const bool isShiftRight = (wParam == VK_RSHIFT);
+    const bool isLetter = (wParam >= 'a' && wParam <= 'z') || (wParam >= 'A' && wParam <= 'Z');
+    const bool shiftPressed = shiftLeftPressed_ || shiftRightPressed_;
+
+    if (keyDown) {
+        if (isShiftLeft) {
+            shiftLeftPressed_ = true;
+            shiftUsed_ = false;
+        } else if (isShiftRight) {
+            shiftRightPressed_ = true;
+            shiftUsed_ = false;
+        } else if (shiftPressed) {
+            // Another key was pressed while Shift is held; do not treat this as a solo Shift.
+            shiftUsed_ = true;
+        }
+    } else {
+        if (isShiftLeft) {
+            shiftLeftPressed_ = false;
+            if (!shiftUsed_ && !shiftRightPressed_) {
+                OnLanguageToggled();
+            }
+        } else if (isShiftRight) {
+            shiftRightPressed_ = false;
+            if (!shiftUsed_ && !shiftLeftPressed_) {
+                OnLanguageToggled();
+            }
+        }
+    }
+
     bool handled = false;
 
     if (keyDown) {
+        // In English mode, let letters pass through to the application.
+        if (inputState_.languageMode == LanguageMode::English && isLetter) {
+            return S_OK;
+        }
+
+        // While Shift is held, treat letters as direct uppercase input rather than pinyin.
+        if (shiftPressed && isLetter) {
+            return S_OK;
+        }
+
         if (wParam >= 'a' && wParam <= 'z') {
             inputProcessor_.AppendPinyinChar(static_cast<wchar_t>(wParam));
             handled = true;
@@ -375,6 +418,7 @@ void TextService::UpdateCandidateWindow(ITfContext* context) {
 
     candidateWindow_.SetPageInfo(static_cast<int>(inputProcessor_.GetCurrentPage()),
                                  static_cast<int>(inputProcessor_.GetTotalPages()));
+    candidateWindow_.SetLanguageIndicator(inputState_.languageMode == LanguageMode::Chinese);
     candidateWindow_.MoveTo(pt.x, pt.y + 20);
     candidateWindow_.UpdateCandidates(items);
     candidateWindow_.Show();
@@ -384,10 +428,26 @@ void TextService::HideCandidateWindow() {
     candidateWindow_.Hide();
 }
 
+void TextService::OnLanguageToggled() {
+    inputState_.ToggleLanguage();
+    inputProcessor_.Clear();
+    HideCandidateWindow();
+    UpdateLanguageIndicator();
+}
+
+void TextService::UpdateLanguageIndicator() {
+    candidateWindow_.SetLanguageIndicator(inputState_.languageMode == LanguageMode::Chinese);
+}
+
 void TextService::OnCandidateWindowClick(int action, int param) {
     if (action == kCandidateActionSettings) {
         // Launch the standalone settings application asynchronously.
         ShellExecuteW(nullptr, L"open", L"tip_setting.exe", nullptr, nullptr, SW_SHOWNORMAL);
+        return;
+    }
+
+    if (action == kCandidateActionLanguageToggle) {
+        OnLanguageToggled();
         return;
     }
 
