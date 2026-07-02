@@ -1,2 +1,0 @@
-/usr/bin/ar qc libtip_engine.a CMakeFiles/tip_engine.dir/input_processor.cpp.o
-/usr/bin/ranlib libtip_engine.a

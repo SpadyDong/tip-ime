@@ -1,2 +1,0 @@
-/usr/bin/ar qc libtip_utils.a CMakeFiles/tip_utils.dir/string_utils.cpp.o CMakeFiles/tip_utils.dir/logger.cpp.o
-/usr/bin/ranlib libtip_utils.a

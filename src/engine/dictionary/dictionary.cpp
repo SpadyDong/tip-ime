@@ -1,6 +1,10 @@
 #include "dictionary.h"
 
+#include <fstream>
+#include <sstream>
+
 #include "logger.h"
+#include "string_utils.h"
 
 namespace tip {
 
@@ -19,8 +23,42 @@ Dictionary::~Dictionary() {
 }
 
 bool Dictionary::LoadFromFile(const std::wstring& filePath) {
-    // TODO: implement binary dictionary deserialization
-    TIP_LOG_INFO(L"Dictionary loading from: " + filePath);
+    std::string utf8Path = WideToUtf8(filePath);
+    std::ifstream file(utf8Path);
+    if (!file.is_open()) {
+        TIP_LOG_ERROR(L"Failed to open dictionary file: " + filePath);
+        return false;
+    }
+
+    std::string line;
+    size_t loaded = 0;
+    while (std::getline(file, line)) {
+        if (line.empty() || line.front() == '#') {
+            continue;
+        }
+
+        std::wstring wideLine = Utf8ToWide(line);
+        auto parts = SplitWideString(wideLine, L'\t');
+        if (parts.size() < 2) {
+            continue;
+        }
+
+        std::wstring pinyin = ToLowerWide(parts[0]);
+        std::wstring text = parts[1];
+        int frequency = 0;
+        if (parts.size() >= 3) {
+            try {
+                frequency = std::stoi(parts[2]);
+            } catch (...) {
+                frequency = 0;
+            }
+        }
+
+        AddEntry(pinyin, text, frequency);
+        ++loaded;
+    }
+
+    TIP_LOG_INFO(L"Dictionary loaded " + std::to_wstring(loaded) + L" entries from: " + filePath);
     return true;
 }
 

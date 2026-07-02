@@ -1,2 +1,0 @@
-/usr/bin/ar qc libtip_pinyin.a CMakeFiles/tip_pinyin.dir/pinyin_parser.cpp.o CMakeFiles/tip_pinyin.dir/fuzzy_sound.cpp.o
-/usr/bin/ranlib libtip_pinyin.a

@@ -5,6 +5,9 @@
 #include <msctf.h>
 #include <unknwn.h>
 
+#include "candidate_window.h"
+#include "input_processor.h"
+
 namespace tip {
 
 class TextService : public ITfTextInputProcessor,
@@ -45,6 +48,9 @@ private:
 
     HRESULT HandleKey(ITfContext* context, WPARAM wParam, LPARAM lParam, BOOL keyDown, BOOL* eaten);
     HRESULT CommitText(ITfContext* context, const wchar_t* text);
+    HRESULT ProcessKey(ITfContext* context, WPARAM wParam, BOOL keyDown, BOOL* eaten);
+    void UpdateCandidateWindow(ITfContext* context);
+    void HideCandidateWindow();
 
     LONG refCount_;
     ITfThreadMgr* threadMgr_;
@@ -52,6 +58,8 @@ private:
     DWORD keyEventSinkCookie_;
     DWORD threadMgrEventSinkCookie_;
     ITfComposition* composition_;
+    InputProcessor inputProcessor_;
+    CandidateWindow candidateWindow_;
 };
 
 } // namespace tip

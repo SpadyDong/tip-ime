@@ -6,6 +6,8 @@ set(TIP_UNIT_TEST_SOURCES
     test_pinyin_parser.cpp
     test_trie_index.cpp
     test_input_state.cpp
+    test_input_processor.cpp
+    test_string_utils.cpp
 )
 
 add_executable(tip_unit_tests ${TIP_UNIT_TEST_SOURCES})

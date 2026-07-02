@@ -17,6 +17,7 @@ target_link_libraries(tip_ime
     PRIVATE
         tip_engine
         tip_utils
+        tip_candidate
 )
 
 if(MSVC)

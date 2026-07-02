@@ -136,6 +136,8 @@ STDMETHODIMP TextService::Activate(ITfThreadMgr* threadMgr, TfClientId clientId)
     threadMgr_->AddRef();
     clientId_ = clientId;
 
+    inputProcessor_.Initialize();
+
     HRESULT hr = AdviseThreadMgrEventSink();
     if (FAILED(hr)) {
         TIP_LOG_ERROR(L"AdviseThreadMgrEventSink failed");
@@ -162,6 +164,8 @@ STDMETHODIMP TextService::Deactivate() {
         composition_->Release();
         composition_ = nullptr;
     }
+
+    inputProcessor_.Shutdown();
 
     if (threadMgr_) {
         threadMgr_->Release();
@@ -276,31 +280,94 @@ STDMETHODIMP TextService::OnPreservedKey(ITfContext* context, REFGUID rguid, BOO
 HRESULT TextService::HandleKey(ITfContext* context, WPARAM wParam, LPARAM lParam, BOOL keyDown,
                                BOOL* eaten) {
     (void)lParam;
+    return ProcessKey(context, wParam, keyDown, eaten);
+}
+
+HRESULT TextService::ProcessKey(ITfContext* context, WPARAM wParam, BOOL keyDown, BOOL* eaten) {
     *eaten = FALSE;
 
     if (!context) {
         return S_OK;
     }
 
-    // Minimal demo: map lowercase ASCII keys to fixed Chinese characters.
-    // 'a' -> "啊", 'b' -> "吧", ..., 'z' -> "在".
-    if (keyDown && wParam >= 'a' && wParam <= 'z') {
-        static const wchar_t* kDemoMap[26] = {
-            L"啊", L"吧", L"从", L"的", L"额", L"发", L"个", L"和", L"是", L"就",
-            L"看", L"了", L"吗", L"你", L"哦", L"平", L"去", L"人", L"三", L"他",
-            L"有", L"我", L"下", L"一", L"在", L"做"
-        };
-        *eaten = TRUE;
-        return CommitText(context, kDemoMap[wParam - 'a']);
+    bool handled = false;
+
+    if (keyDown) {
+        if (wParam >= 'a' && wParam <= 'z') {
+            inputProcessor_.AppendPinyinChar(static_cast<wchar_t>(wParam));
+            handled = true;
+        } else if (wParam >= 'A' && wParam <= 'Z') {
+            inputProcessor_.AppendPinyinChar(static_cast<wchar_t>(wParam - 'A' + 'a'));
+            handled = true;
+        } else if (wParam == VK_BACK) {
+            inputProcessor_.Backspace();
+            handled = true;
+        } else if (wParam == VK_ESCAPE) {
+            inputProcessor_.Clear();
+            handled = true;
+        } else if (wParam == VK_SPACE || wParam == VK_RETURN) {
+            // Commit the first candidate.
+            if (inputProcessor_.SelectCandidate(0)) {
+                handled = true;
+            }
+        } else if (wParam >= '0' && wParam <= '9') {
+            size_t index = (wParam == '0') ? 9 : (wParam - '1');
+            if (inputProcessor_.SelectCandidate(index)) {
+                handled = true;
+            }
+        }
     }
 
-    // Space commits current composition (demo simply dismisses it).
-    if (keyDown && wParam == VK_SPACE) {
+    if (handled) {
         *eaten = TRUE;
-        return CommitText(context, L"");
+        std::wstring committed = inputProcessor_.GetCommittedText();
+        if (!committed.empty()) {
+            CommitText(context, committed.c_str());
+            HideCandidateWindow();
+        } else {
+            UpdateCandidateWindow(context);
+        }
     }
 
     return S_OK;
+}
+
+void TextService::UpdateCandidateWindow(ITfContext* context) {
+    (void)context;
+
+    auto rawPinyin = inputProcessor_.GetRawPinyin();
+    auto candidates = inputProcessor_.GetCandidates();
+
+    if (rawPinyin.empty() || candidates.empty()) {
+        HideCandidateWindow();
+        return;
+    }
+
+    std::vector<CandidateItem> items;
+    for (const auto& candidate : candidates) {
+        items.push_back({ candidate.text });
+    }
+
+    if (!candidateWindow_.Create()) {
+        return;
+    }
+
+    POINT pt = {};
+    if (GetCaretPos(&pt)) {
+        // Client coordinates of the focused window; convert to screen coordinates.
+        HWND hwndForeground = GetForegroundWindow();
+        ClientToScreen(hwndForeground, &pt);
+    } else {
+        GetCursorPos(&pt);
+    }
+
+    candidateWindow_.MoveTo(pt.x, pt.y + 20);
+    candidateWindow_.UpdateCandidates(items);
+    candidateWindow_.Show();
+}
+
+void TextService::HideCandidateWindow() {
+    candidateWindow_.Hide();
 }
 
 HRESULT TextService::CommitText(ITfContext* context, const wchar_t* text) {

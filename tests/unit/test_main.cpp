@@ -10,6 +10,8 @@ struct TestResult {
 extern std::vector<TestResult> RunPinyinParserTests();
 extern std::vector<TestResult> RunTrieIndexTests();
 extern std::vector<TestResult> RunInputStateTests();
+extern std::vector<TestResult> RunInputProcessorTests();
+extern std::vector<TestResult> RunStringUtilsTests();
 
 int main() {
     std::vector<TestResult> allResults;
@@ -21,6 +23,8 @@ int main() {
     append(RunPinyinParserTests());
     append(RunTrieIndexTests());
     append(RunInputStateTests());
+    append(RunInputProcessorTests());
+    append(RunStringUtilsTests());
 
     int passed = 0;
     int failed = 0;
