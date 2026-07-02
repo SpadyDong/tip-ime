@@ -1,0 +1,2 @@
+/usr/bin/ar qc libtip_dictionary.a CMakeFiles/tip_dictionary.dir/trie_index.cpp.o CMakeFiles/tip_dictionary.dir/dictionary.cpp.o
+/usr/bin/ranlib libtip_dictionary.a

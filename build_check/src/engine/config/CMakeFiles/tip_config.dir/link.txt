@@ -1,0 +1,2 @@
+/usr/bin/ar qc libtip_config.a CMakeFiles/tip_config.dir/config_manager.cpp.o
+/usr/bin/ranlib libtip_config.a
