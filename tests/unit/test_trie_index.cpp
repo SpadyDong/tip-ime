@@ -16,7 +16,6 @@ std::vector<TestResult> RunTrieIndexTests() {
 
     TrieIndex index;
     index.Insert(L"zhongguo", { L"中国", L"zhongguo", 100 });
-    index.Insert(L"zhongguo", { L"中国", L"zhongguo", 100 });
     index.Insert(L"beijing", { L"北京", L"beijing", 90 });
 
     auto r1 = index.Search(L"zhong");
