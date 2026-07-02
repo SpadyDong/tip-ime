@@ -38,11 +38,20 @@ public:
     STDMETHODIMP OnPopContext(ITfContext* context) override;
 
 private:
+    HRESULT AdviseKeyEventSink();
+    HRESULT UnadviseKeyEventSink();
+    HRESULT AdviseThreadMgrEventSink();
+    HRESULT UnadviseThreadMgrEventSink();
+
+    HRESULT HandleKey(ITfContext* context, WPARAM wParam, LPARAM lParam, BOOL keyDown, BOOL* eaten);
+    HRESULT CommitText(ITfContext* context, const wchar_t* text);
+
     LONG refCount_;
     ITfThreadMgr* threadMgr_;
     TfClientId clientId_;
     DWORD keyEventSinkCookie_;
     DWORD threadMgrEventSinkCookie_;
+    ITfComposition* composition_;
 };
 
 } // namespace tip

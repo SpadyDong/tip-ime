@@ -6,6 +6,9 @@
 
 namespace tip {
 
+// {12345678-1234-1234-1234-56789ABCDEF0}
+extern const CLSID CLSID_TIPTextService;
+
 HRESULT RegisterCOM();
 HRESULT UnregisterCOM();
 
