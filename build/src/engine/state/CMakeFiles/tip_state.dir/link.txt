@@ -1,0 +1,2 @@
+/usr/bin/ar qc libtip_state.a CMakeFiles/tip_state.dir/input_state.cpp.o
+/usr/bin/ranlib libtip_state.a

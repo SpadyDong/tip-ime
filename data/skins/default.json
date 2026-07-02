@@ -1,0 +1,11 @@
+{
+  "name": "default",
+  "candidate_window": {
+    "background_color": "#FFFFFF",
+    "border_color": "#CCCCCC",
+    "text_color": "#333333",
+    "highlight_color": "#E6F7FF",
+    "font_family": "Microsoft YaHei UI",
+    "font_size": 14
+  }
+}

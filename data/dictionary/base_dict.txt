@@ -1,0 +1,6 @@
+# TIP输入法基础词库（文本格式，构建时转换为二进制）
+# 格式：拼音\t汉字\t词频
+zhongguo	中国	100
+beijing	北京	90
+shanghai	上海	85
+renmin	人民	80
