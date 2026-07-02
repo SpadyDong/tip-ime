@@ -21,7 +21,13 @@ target_link_libraries(tip_ime
 )
 
 if(MSVC)
-    target_link_libraries(tip_ime PRIVATE ole32 uuid msctf advapi32 shell32)
+    target_link_libraries(tip_ime PRIVATE ole32 uuid advapi32 shell32)
+    # Newer Windows SDKs do not ship msctf.lib; the TSF GUIDs we need are
+    # provided by uuid.lib. Only link msctf.lib if it is actually present.
+    find_library(TIP_MSCTF_LIB msctf)
+    if(TIP_MSCTF_LIB)
+        target_link_libraries(tip_ime PRIVATE ${TIP_MSCTF_LIB})
+    endif()
 endif()
 
 set_target_properties(tip_ime PROPERTIES
