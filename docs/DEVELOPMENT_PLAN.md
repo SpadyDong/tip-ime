@@ -1,4 +1,4 @@
-# tip-ime 输入法项目 AI Agent 开发全计划
+# TIP输入法项目 AI Agent 开发全计划
 
 > 适配 Windows 平台 | 基于 TSF 现代输入法框架 | AI Agent 全流程辅助开发 | 代码托管至 GitHub
 
