@@ -18,6 +18,9 @@ if(MSVC)
     # Ensure Windows API macros resolve to the wide-character variants to match
     # our explicit use of W-suffix APIs and wchar_t string literals.
     add_compile_definitions(UNICODE _UNICODE NOMINMAX)
+    # Interpret source files as UTF-8 so that narrow string literals containing
+    # non-ASCII characters are encoded correctly.
+    add_compile_options(/utf-8)
 endif()
 
 if(TIP_ENABLE_WARNINGS)
