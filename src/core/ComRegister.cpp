@@ -139,7 +139,7 @@ HRESULT RegisterTSFProfile(const wchar_t* modulePath) {
                                          GUID_TIPProfile, kDescription,
                                          static_cast<ULONG>(wcslen(kDescription)),
                                          modulePath, static_cast<ULONG>(wcslen(modulePath)),
-                                         0, 0, 0, 0);
+                                         0, 0, 0, 0, 0);
         profileMgr->Release();
     }
 

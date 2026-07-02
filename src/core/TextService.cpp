@@ -260,9 +260,18 @@ STDMETHODIMP TextService::OnSetFocus(BOOL foreground) {
     return S_OK;
 }
 
-STDMETHODIMP TextService::OnTestKeyFocus(ITfContext* context, WPARAM wParam, LPARAM lParam,
-                                         BOOL* eaten) {
+STDMETHODIMP TextService::OnTestKeyDown(ITfContext* context, WPARAM wParam, LPARAM lParam,
+                                        BOOL* eaten) {
     return HandleKey(context, wParam, lParam, false, eaten);
+}
+
+STDMETHODIMP TextService::OnTestKeyUp(ITfContext* context, WPARAM wParam, LPARAM lParam,
+                                      BOOL* eaten) {
+    (void)context;
+    (void)wParam;
+    (void)lParam;
+    *eaten = FALSE;
+    return S_OK;
 }
 
 STDMETHODIMP TextService::OnKeyDown(ITfContext* context, WPARAM wParam, LPARAM lParam,
