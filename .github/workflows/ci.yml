@@ -35,7 +35,20 @@ jobs:
         run: cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -A x64
 
       - name: Build
-        run: cmake --build build --config Release --parallel
+        run: |
+          cmake --build build --config Release --parallel > build-log.txt 2>&1
+          $exitCode = $LASTEXITCODE
+          Get-Content build-log.txt -Tail 100
+          exit $exitCode
+
+      - name: Upload build log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build-log
+          path: build-log.txt
 
       - name: Run unit tests
+        if: success()
         run: ctest --test-dir build -C Release --output-on-failure
+
