@@ -4,7 +4,7 @@
 # compile CXX with /usr/bin/c++
 CXX_DEFINES = 
 
-CXX_INCLUDES = -I/workspace/src/engine/config -I/workspace/src/utils
+CXX_INCLUDES = -I/workspace/src/engine/config -I/workspace/src -I/workspace/src/utils
 
 CXX_FLAGS = -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wpedantic
 

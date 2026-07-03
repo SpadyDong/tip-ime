@@ -4,26 +4,83 @@
 #include <cctype>
 #include <sstream>
 
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <codecvt>
+#include <locale>
+#endif
+
 namespace tip {
 
 std::wstring Utf8ToWide(const std::string& utf8) {
-    // TODO: implement platform-specific UTF-8 to UTF-16 conversion
-    return std::wstring(utf8.begin(), utf8.end());
+    if (utf8.empty()) {
+        return std::wstring();
+    }
+#ifdef _WIN32
+    int size = ::MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, utf8.c_str(), -1, nullptr, 0);
+    if (size <= 0) {
+        return std::wstring();
+    }
+    std::wstring result(size - 1, L'\0');
+    ::MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, utf8.c_str(), -1, &result[0], size);
+    return result;
+#else
+    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+    return converter.from_bytes(utf8);
+#endif
 }
 
 std::string WideToUtf8(const std::wstring& wide) {
-    // TODO: implement platform-specific UTF-16 to UTF-8 conversion
-    return std::string(wide.begin(), wide.end());
+    if (wide.empty()) {
+        return std::string();
+    }
+#ifdef _WIN32
+    int size = ::WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, wide.c_str(), -1, nullptr, 0, nullptr, nullptr);
+    if (size <= 0) {
+        return std::string();
+    }
+    std::string result(size - 1, '\0');
+    ::WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, wide.c_str(), -1, &result[0], size, nullptr, nullptr);
+    return result;
+#else
+    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+    return converter.to_bytes(wide);
+#endif
 }
 
 std::wstring GbkToWide(const std::string& gbk) {
-    // TODO: implement platform-specific GBK to UTF-16 conversion
-    return std::wstring(gbk.begin(), gbk.end());
+    if (gbk.empty()) {
+        return std::wstring();
+    }
+#ifdef _WIN32
+    int size = ::MultiByteToWideChar(CP_ACP, 0, gbk.c_str(), -1, nullptr, 0);
+    if (size <= 0) {
+        return std::wstring();
+    }
+    std::wstring result(size - 1, L'\0');
+    ::MultiByteToWideChar(CP_ACP, 0, gbk.c_str(), -1, &result[0], size);
+    return result;
+#else
+    return Utf8ToWide(gbk);
+#endif
 }
 
 std::string WideToGbk(const std::wstring& wide) {
-    // TODO: implement platform-specific UTF-16 to GBK conversion
-    return std::string(wide.begin(), wide.end());
+    if (wide.empty()) {
+        return std::string();
+    }
+#ifdef _WIN32
+    int size = ::WideCharToMultiByte(CP_ACP, 0, wide.c_str(), -1, nullptr, 0, nullptr, nullptr);
+    if (size <= 0) {
+        return std::string();
+    }
+    std::string result(size - 1, '\0');
+    ::WideCharToMultiByte(CP_ACP, 0, wide.c_str(), -1, &result[0], size, nullptr, nullptr);
+    return result;
+#else
+    return WideToUtf8(wide);
+#endif
 }
 
 std::vector<std::wstring> SplitWideString(const std::wstring& input, wchar_t delimiter) {

@@ -43,6 +43,11 @@ void TrieIndex::Insert(const std::wstring& pinyin, const DictEntry& entry) {
         }
         node = it->second.get();
     }
+    for (const auto& existing : node->entries) {
+        if (existing.text == entry.text) {
+            return;
+        }
+    }
     node->entries.push_back(entry);
 }
 

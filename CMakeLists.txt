@@ -14,6 +14,11 @@ option(TIP_BUILD_UI "Build UI modules (Windows only)" ON)
 option(TIP_BUILD_TESTS "Build unit tests and integration tests" ON)
 option(TIP_ENABLE_WARNINGS "Enable strict compiler warnings" ON)
 
+if(MSVC)
+    add_compile_definitions(UNICODE _UNICODE NOMINMAX)
+    add_compile_options(/utf-8)
+endif()
+
 if(TIP_ENABLE_WARNINGS)
     if(MSVC)
         add_compile_options(/W4 /WX-)

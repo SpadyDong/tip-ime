@@ -5,6 +5,8 @@
     "border_color": "#CCCCCC",
     "text_color": "#333333",
     "highlight_color": "#E6F7FF",
+    "selection_background_color": "#666666",
+    "selection_text_color": "#FFFFFF",
     "font_family": "Microsoft YaHei UI",
     "font_size": 14
   }

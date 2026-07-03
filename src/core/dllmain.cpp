@@ -12,14 +12,17 @@ const CLSID CLSID_TIPTextService = { 0x12345678, 0x1234, 0x1234, { 0x12, 0x34, 0
 
 } // namespace tip
 
+HMODULE g_tipModule = nullptr;
+
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID lpReserved) {
-    (void)hModule;
     (void)lpReserved;
     switch (reason) {
         case DLL_PROCESS_ATTACH:
+            g_tipModule = hModule;
             DisableThreadLibraryCalls(hModule);
             break;
         case DLL_PROCESS_DETACH:
+            g_tipModule = nullptr;
             break;
     }
     return TRUE;

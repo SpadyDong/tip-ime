@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -16,7 +17,7 @@ public:
     InputProcessor();
     ~InputProcessor();
 
-    bool Initialize();
+    bool Initialize(const std::wstring& dictionaryPath);
     void Shutdown();
 
     void AppendPinyinChar(wchar_t ch);
@@ -26,7 +27,17 @@ public:
     std::wstring GetRawPinyin() const;
     std::vector<Candidate> GetCandidates() const;
 
-    bool SelectCandidate(size_t index);
+    bool PageDown();
+    bool PageUp();
+    std::vector<Candidate> GetPageCandidates() const;
+    int GetCurrentPage() const;
+    int GetPageCount() const;
+
+    void SetSelectedIndex(size_t index);
+    size_t GetSelectedIndex() const;
+
+    bool SelectCurrentCandidate();
+    bool SelectCandidateByIndex(size_t index);
     std::wstring GetCommittedText();
 
 private:

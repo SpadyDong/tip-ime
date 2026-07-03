@@ -3,9 +3,14 @@
 #ifdef _WIN32
 
 #include <msctf.h>
+#include <string>
 #include <unknwn.h>
 
 namespace tip {
+
+class InputProcessor;
+class CandidateWindow;
+struct CandidateWindowStyle;
 
 class TextService : public ITfTextInputProcessor,
                     public ITfKeyEventSink,
@@ -25,7 +30,8 @@ public:
 
     // ITfKeyEventSink
     STDMETHODIMP OnSetFocus(BOOL foreground) override;
-    STDMETHODIMP OnTestKeyFocus(ITfContext* context, WPARAM wParam, LPARAM lParam, BOOL* eaten) override;
+    STDMETHODIMP OnTestKeyDown(ITfContext* context, WPARAM wParam, LPARAM lParam, BOOL* eaten) override;
+    STDMETHODIMP OnTestKeyUp(ITfContext* context, WPARAM wParam, LPARAM lParam, BOOL* eaten) override;
     STDMETHODIMP OnKeyDown(ITfContext* context, WPARAM wParam, LPARAM lParam, BOOL* eaten) override;
     STDMETHODIMP OnKeyUp(ITfContext* context, WPARAM wParam, LPARAM lParam, BOOL* eaten) override;
     STDMETHODIMP OnPreservedKey(ITfContext* context, REFGUID rguid, BOOL* eaten) override;
@@ -38,11 +44,20 @@ public:
     STDMETHODIMP OnPopContext(ITfContext* context) override;
 
 private:
+    void UpdateCandidateWindow();
+    void CommitText(ITfContext* context, const std::wstring& text);
+    std::wstring GetDataDirectory() const;
+
     LONG refCount_;
     ITfThreadMgr* threadMgr_;
     TfClientId clientId_;
     DWORD keyEventSinkCookie_;
     DWORD threadMgrEventSinkCookie_;
+
+    InputProcessor* inputProcessor_;
+    CandidateWindow* candidateWindow_;
+    CandidateWindowStyle* candidateStyle_;
+    BOOL isComposing_;
 };
 
 } // namespace tip

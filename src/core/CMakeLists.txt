@@ -17,10 +17,16 @@ target_link_libraries(tip_ime
     PRIVATE
         tip_engine
         tip_utils
+        tip_candidate
 )
 
 if(MSVC)
     target_link_libraries(tip_ime PRIVATE ole32 uuid)
+    find_library(TIP_MSCTF_LIB msctf)
+    if(TIP_MSCTF_LIB)
+        target_link_libraries(tip_ime PRIVATE ${TIP_MSCTF_LIB})
+    endif()
+    target_link_libraries(tip_ime PRIVATE gdi32 user32)
 endif()
 
 set_target_properties(tip_ime PROPERTIES
